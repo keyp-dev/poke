@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { Api } from "grammy";
 import { handleBotWebhook, type Env } from "./bot";
 import { getWebhook } from "./db";
 
@@ -27,53 +28,135 @@ app.post("/t/:token", async (c) => {
     return c.json({ error: "Invalid JSON" }, 400);
   }
 
-  const event = body.event as string;
-  if (!event) {
-    return c.json({ error: "Missing required field: event" }, 400);
-  }
-
-  const emoji = (body.emoji as string) || "";
-  const channel = body.channel as string;
-  const metadata = body.metadata as Record<string, string> | undefined;
+  const api = new Api(c.env.BOT_TOKEN);
+  const chatId = webhook.chat_id;
+  const threadId = webhook.thread_id ?? undefined;
   const notify = body.notify !== false;
+  const parseMode = body.parse_mode === "MarkdownV2" ? "MarkdownV2" : "HTML";
 
-  // Build message
-  let message = "";
-  if (emoji) message += emoji + " ";
-  if (channel) message += `• #${channel}\n\n`;
-  else if (emoji) message += "\n\n";
-  message += `<b>${escapeHtml(event)}</b>`;
-  if (metadata && typeof metadata === "object") {
-    const entries = Object.entries(metadata);
-    if (entries.length > 0) {
-      message += "\n\n" + entries.map(([k, v]) => `#${k}: ${escapeHtml(String(v))}`).join("\n");
+  try {
+    const type = (body.type as string) || "text";
+
+    switch (type) {
+      case "text": {
+        const text = buildMessage(body, parseMode);
+        await api.sendMessage(chatId, text, {
+          parse_mode: parseMode,
+          disable_notification: !notify,
+          message_thread_id: threadId,
+        });
+        break;
+      }
+
+      case "photo": {
+        const photo = body.photo as string;
+        if (!photo) return c.json({ error: "Missing field: photo (URL)" }, 400);
+        const caption = body.caption as string | undefined ?? buildMessage(body, parseMode);
+        await api.sendPhoto(chatId, photo, {
+          caption,
+          parse_mode: parseMode,
+          disable_notification: !notify,
+          message_thread_id: threadId,
+        });
+        break;
+      }
+
+      case "document": {
+        const document = body.document as string;
+        if (!document) return c.json({ error: "Missing field: document (URL)" }, 400);
+        const caption = body.caption as string | undefined ?? buildMessage(body, parseMode);
+        await api.sendDocument(chatId, document, {
+          caption,
+          parse_mode: parseMode,
+          disable_notification: !notify,
+          message_thread_id: threadId,
+        });
+        break;
+      }
+
+      case "sticker": {
+        const sticker = body.sticker as string;
+        if (!sticker) return c.json({ error: "Missing field: sticker (file_id or URL)" }, 400);
+        await api.sendSticker(chatId, sticker, {
+          disable_notification: !notify,
+          message_thread_id: threadId,
+        });
+        break;
+      }
+
+      case "raw": {
+        const text = body.text as string;
+        if (!text) return c.json({ error: "Missing field: text" }, 400);
+        await api.sendMessage(chatId, text, {
+          parse_mode: parseMode,
+          disable_notification: !notify,
+          message_thread_id: threadId,
+          link_preview_options: body.link_preview === false ? { is_disabled: true } : undefined,
+        });
+        break;
+      }
+
+      default:
+        return c.json({ error: `Unknown type: ${type}` }, 400);
     }
-  }
-
-  // Send via Telegram Bot API
-  const url = `https://api.telegram.org/bot${c.env.BOT_TOKEN}/sendMessage`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      chat_id: webhook.chat_id,
-      text: message,
-      parse_mode: "HTML",
-      disable_notification: !notify,
-      ...(webhook.thread_id ? { message_thread_id: webhook.thread_id } : {}),
-    }),
-  });
-
-  if (!res.ok) {
-    const err = await res.text();
-    return c.json({ error: "Failed to send message", detail: err }, 502);
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return c.json({ error: "Failed to send message", detail: msg }, 502);
   }
 
   return c.json({ ok: true });
 });
 
+function buildMessage(body: Record<string, unknown>, parseMode: string): string {
+  const event = body.event as string;
+  if (!event) return "";
+
+  const emoji = (body.emoji as string) || "";
+  const channel = body.channel as string;
+  const metadata = body.metadata as Record<string, string> | undefined;
+
+  if (parseMode === "MarkdownV2") {
+    return buildMarkdownV2(event, emoji, channel, metadata);
+  }
+  return buildHtml(event, emoji, channel, metadata);
+}
+
+function buildHtml(event: string, emoji: string, channel: string, metadata?: Record<string, string>): string {
+  let msg = "";
+  if (emoji) msg += emoji + " ";
+  if (channel) msg += `• #${channel}\n\n`;
+  else if (emoji) msg += "\n\n";
+  msg += `<b>${escapeHtml(event)}</b>`;
+  if (metadata && typeof metadata === "object") {
+    const entries = Object.entries(metadata);
+    if (entries.length > 0) {
+      msg += "\n\n" + entries.map(([k, v]) => `#${k}: ${escapeHtml(String(v))}`).join("\n");
+    }
+  }
+  return msg;
+}
+
+function buildMarkdownV2(event: string, emoji: string, channel: string, metadata?: Record<string, string>): string {
+  let msg = "";
+  if (emoji) msg += emoji + " ";
+  if (channel) msg += `• \\#${escapeMarkdownV2(channel)}\n\n`;
+  else if (emoji) msg += "\n\n";
+  msg += `*${escapeMarkdownV2(event)}*`;
+  if (metadata && typeof metadata === "object") {
+    const entries = Object.entries(metadata);
+    if (entries.length > 0) {
+      msg += "\n\n" + entries.map(([k, v]) => `\\#${escapeMarkdownV2(k)}: ${escapeMarkdownV2(String(v))}`).join("\n");
+    }
+  }
+  return msg;
+}
+
 function escapeHtml(str: string): string {
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function escapeMarkdownV2(str: string): string {
+  return str.replace(/([_*\[\]()~`>#+\-=|{}.!\\])/g, "\\$1");
 }
 
 export default app;

@@ -1,0 +1,13 @@
+name = "poke"
+main = "src/index.ts"
+compatibility_date = "2024-06-01"
+account_id = "78b3a2f309eea39a2c971b3f7dd655eb"
+
+routes = [
+  { pattern = "poke.keyp.dev", custom_domain = true }
+]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "poke-db"
+database_id = "c16aac40-a8f6-4eb6-a8f6-b6f2d667080a"

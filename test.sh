@@ -177,8 +177,14 @@ case "$CMD" in
     # 6. raw HTML
     post "{\"type\":\"raw\",\"text\":\"<b>Raw HTML</b>\n\nDirect message with <i>formatting</i> and <code>code</code>.\",\"notify\":$NOTIFY,\"parse_mode\":\"HTML\"}" "raw"
 
+    # 7. raw: code block
+    post "{\"type\":\"raw\",\"text\":\"<pre><code>SELECT * FROM users WHERE active = 1;</code></pre>\",\"notify\":$NOTIFY,\"parse_mode\":\"HTML\"}" "raw/code"
+
+    # 8. raw: blockquote
+    post "{\"type\":\"raw\",\"text\":\"<blockquote>Any fool can write code that a computer can understand.\\nGood programmers write code that humans can understand.</blockquote>\",\"notify\":$NOTIFY,\"parse_mode\":\"HTML\"}" "raw/quote"
+
     echo ""
-    echo "All tests done (6/6)."
+    echo "All tests done (8/8)."
     ;;
 
   *)

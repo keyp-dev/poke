@@ -4,8 +4,8 @@ Base URL: `https://poke.keyp.dev`
 
 ## Quick Start
 
-1. 在 Telegram 中找到 `@pokeup_bot`，发送 `/webhook` 获取 webhook URL
-2. 向该 URL 发送 POST 请求即可推送消息到 Telegram
+1. Find `@pokeup_bot` in Telegram and send `/webhook` to get a webhook URL
+2. POST to that URL to push a message to Telegram
 
 ```bash
 curl -X POST https://poke.keyp.dev/t/<token> \
@@ -13,24 +13,24 @@ curl -X POST https://poke.keyp.dev/t/<token> \
   -d '{"event": "Hello World"}'
 ```
 
-## 请求格式
+## Request Format
 
 `POST /t/:token`
 
 Content-Type: `application/json`
 
-## 模板字段
+## Template Fields
 
-以下字段用于生成格式化消息，适用于 `text`、`photo`、`document` 类型：
+The following fields are used to build a formatted message; they apply to the `text`, `photo`, and `document` types:
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `event` | string | text 类型必填 | 事件名称，加粗显示 |
-| `channel` | string | 否 | 来源渠道，显示为 hashtag |
-| `emoji` | string | 否 | 前缀 emoji |
-| `metadata` | object | 否 | 键值对附加数据 |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `event` | string | required for text type | Event name, shown in bold |
+| `channel` | string | no | Source channel, shown as a hashtag |
+| `emoji` | string | no | Leading emoji |
+| `metadata` | object | no | Key/value extra data |
 
-生成效果：
+Rendered result:
 
 > 👋 • #WebApp
 >
@@ -39,11 +39,11 @@ Content-Type: `application/json`
 > #email: user@example.com
 > #plan: pro
 
-## 消息类型
+## Message Types
 
-### text（默认）
+### text (default)
 
-使用模板字段生成格式化通知消息。
+Uses the template fields to build a formatted notification.
 
 ```json
 {
@@ -57,13 +57,13 @@ Content-Type: `application/json`
 }
 ```
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `event` | string | 是 | 模板字段（见上方） |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `event` | string | yes | Template field (see above) |
 
 ### photo
 
-发送图片消息。`caption` 优先；省略 `caption` 时使用模板字段自动生成说明。
+Sends an image. `caption` takes priority; if omitted, the template fields are used to auto-generate the caption.
 
 ```json
 {
@@ -75,27 +75,27 @@ Content-Type: `application/json`
 }
 ```
 
-效果：图片 + 下方显示模板格式化的说明文字。
+Result: the image plus a template-formatted caption below it.
 
-也可以直接指定 `caption` 来完全自定义说明：
+You can also set `caption` directly to fully customize the text:
 
 ```json
 {
   "type": "photo",
   "photo": "https://example.com/screenshot.png",
-  "caption": "<b>部署截图</b>"
+  "caption": "<b>Deploy screenshot</b>"
 }
 ```
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `type` | string | 是 | `"photo"` |
-| `photo` | string | 是 | 图片 URL |
-| `caption` | string | 否 | 自定义说明。省略则使用模板字段生成 |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | yes | `"photo"` |
+| `photo` | string | yes | Image URL |
+| `caption` | string | no | Custom caption. If omitted, generated from template fields |
 
 ### document
 
-发送文件。规则同 photo，`caption` 优先，否则使用模板字段。
+Sends a file. Same rules as photo — `caption` takes priority, otherwise template fields are used.
 
 ```json
 {
@@ -107,17 +107,17 @@ Content-Type: `application/json`
 }
 ```
 
-效果：文件附件 + 模板格式化的说明文字。
+Result: the file attachment plus a template-formatted caption.
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `type` | string | 是 | `"document"` |
-| `document` | string | 是 | 文件 URL |
-| `caption` | string | 否 | 自定义说明。省略则使用模板字段生成 |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | yes | `"document"` |
+| `document` | string | yes | File URL |
+| `caption` | string | no | Custom caption. If omitted, generated from template fields |
 
 ### sticker
 
-发送贴纸。
+Sends a sticker.
 
 ```json
 {
@@ -126,16 +126,16 @@ Content-Type: `application/json`
 }
 ```
 
-效果：直接发送一个 Telegram 贴纸。
+Result: sends a Telegram sticker directly.
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `type` | string | 是 | `"sticker"` |
-| `sticker` | string | 是 | Telegram file_id 或贴纸 URL |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | yes | `"sticker"` |
+| `sticker` | string | yes | Telegram file_id or sticker URL |
 
 ### raw
 
-直接发送原始文本，不走模板格式化。适合需要完全自定义消息内容的场景。
+Sends raw text without template formatting. Use this when you need full control over the message content.
 
 ```json
 {
@@ -145,51 +145,51 @@ Content-Type: `application/json`
 }
 ```
 
-效果：
+Result:
 
 > **Server Alert**
 >
 > CPU usage exceeded 90% on prod-1.
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `type` | string | 是 | `"raw"` |
-| `text` | string | 是 | 消息内容，支持 HTML 或 MarkdownV2 |
-| `link_preview` | boolean | 否 | 是否显示链接预览，默认 `true` |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | yes | `"raw"` |
+| `text` | string | yes | Message content, supports HTML or MarkdownV2 |
+| `link_preview` | boolean | no | Whether to show link previews, defaults to `true` |
 
-## 通用可选字段
+## Common Optional Fields
 
-以下字段适用于所有消息类型：
+The following fields apply to all message types:
 
-| 字段 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `notify` | boolean | `true` | 是否触发通知音和弹窗。`false` 时消息静音送达（不响铃、不弹窗、不震动），适合非紧急的日志类消息 |
-| `parse_mode` | string | `"HTML"` | `"HTML"` 或 `"MarkdownV2"` |
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `notify` | boolean | `true` | Whether to trigger a notification sound and popup. When `false`, the message is delivered silently (no sound, popup, or vibration) — good for non-urgent log-style messages |
+| `parse_mode` | string | `"HTML"` | `"HTML"` or `"MarkdownV2"` |
 
-## 响应
+## Response
 
-成功：
+Success:
 
 ```json
 { "ok": true }
 ```
 
-失败：
+Failure:
 
 ```json
-{ "error": "错误描述", "detail": "..." }
+{ "error": "error description", "detail": "..." }
 ```
 
-| HTTP 状态码 | 说明 |
-|------------|------|
-| 200 | 成功 |
-| 400 | 请求格式错误（缺少必填字段、JSON 无效等） |
-| 404 | Webhook token 不存在 |
-| 502 | Telegram API 调用失败 |
+| HTTP Status | Description |
+|-------------|-------------|
+| 200 | Success |
+| 400 | Bad request (missing required field, invalid JSON, etc.) |
+| 404 | Webhook token not found |
+| 502 | Telegram API call failed |
 
-## 使用示例
+## Examples
 
-### CI/CD 部署通知
+### CI/CD Deploy Notification
 
 ```bash
 curl -X POST https://poke.keyp.dev/t/<token> \
@@ -205,7 +205,7 @@ curl -X POST https://poke.keyp.dev/t/<token> \
   }'
 ```
 
-### 服务器监控告警
+### Server Monitoring Alert
 
 ```bash
 curl -X POST https://poke.keyp.dev/t/<token> \
@@ -228,7 +228,7 @@ curl -X POST https://poke.keyp.dev/t/<token> \
       -d '{"event":"Deploy ${{ github.ref_name }}","channel":"GitHub","emoji":"✅"}'
 ```
 
-### 发送截图
+### Sending a Screenshot
 
 ```bash
 curl -X POST https://poke.keyp.dev/t/<token> \

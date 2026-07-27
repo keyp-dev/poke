@@ -2,10 +2,17 @@ import { Hono } from "hono";
 import { Api } from "grammy";
 import { handleBotWebhook, type Env } from "./bot";
 import { getWebhook } from "./db";
+import { renderDocsPage } from "./docs";
 
 type HonoEnv = { Bindings: Env };
 
 const app = new Hono<HonoEnv>();
+
+// Webhook API documentation
+app.get("/docs", (c) => c.html(renderDocsPage()));
+
+// Redirect root to docs
+app.get("/", (c) => c.redirect("/docs"));
 
 // Telegram Bot webhook endpoint
 app.post("/bot", async (c) => {

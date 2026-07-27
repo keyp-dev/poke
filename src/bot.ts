@@ -21,7 +21,8 @@ function createBot(env: Env) {
         "Send /webhook to create a new webhook URL.\n" +
         "Send /list to view your webhooks.\n" +
         "Send /delete <token> to remove a webhook.\n\n" +
-        "Supports private chats, groups, and group topics."
+        "Supports private chats, groups, and group topics.\n\n" +
+        `📖 Full docs: ${env.WEBHOOK_BASE_URL}/docs`
     );
   });
 
@@ -51,7 +52,8 @@ function createBot(env: Env) {
           `Notifications will be sent to ${label}.\n\n` +
           `POST JSON to this URL:\n` +
           `<pre>${example}</pre>\n\n` +
-          `* Only <code>event</code> is required`,
+          `* Only <code>event</code> is required\n\n` +
+          `📖 Full docs: ${env.WEBHOOK_BASE_URL}/docs`,
         { parse_mode: "HTML", message_thread_id: threadId ?? undefined }
       );
     } catch (e: unknown) {

@@ -3,10 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
-    "db:migrate": "wrangler d1 execute poke-db --local --file=schema.sql",
-    "db:migrate:prod": "wrangler d1 execute poke-db --remote --file=schema.sql"
+    "gen": "envsubst '${D1_DATABASE_ID}' < wrangler.toml.tmpl > wrangler.toml",
+    "dev": "bun run gen && wrangler dev",
+    "deploy": "bun run gen && wrangler deploy",
+    "db:migrate": "bun run gen && wrangler d1 execute poke-db --local --file=schema.sql",
+    "db:migrate:prod": "bun run gen && wrangler d1 execute poke-db --remote --file=schema.sql"
   },
   "dependencies": {
     "grammy": "^1.25.0",

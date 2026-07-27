@@ -50,23 +50,35 @@ Works in private chats, groups, and group topics — whichever topic you send `/
 
 Prerequisites: a Cloudflare account and a Telegram Bot Token (get one from [@BotFather](https://t.me/BotFather)).
 
+The repo intentionally contains **no account-specific ids**. `account_id` and
+`database_id` come from a local `.env` (git-ignored); `wrangler.toml` is generated
+from `wrangler.toml.tmpl` by the `gen` script, which every `dev`/`deploy`/`db:migrate`
+command runs first. When forking, also replace the `poke.keyp.dev` route in
+`wrangler.toml.tmpl` with your own domain.
+
 ```bash
 # 1. Install dependencies
 bun install   # or npm install
 
-# 2. Create the D1 database, then put the returned database_id into wrangler.toml
-wrangler d1 create poke-db
+# 2. Set up your account ids (direnv loads .env automatically on cd)
+cp .env.example .env
+# edit .env: CLOUDFLARE_ACCOUNT_ID (from `wrangler whoami`) — leave D1_DATABASE_ID for now
+direnv allow          # or: source .env / export the vars manually
 
-# 3. Initialize the schema
+# 3. Create the D1 database, then put the returned database_id into .env
+wrangler d1 create poke-db
+# edit .env: D1_DATABASE_ID=<the id printed above>
+
+# 4. Initialize the schema
 bun run db:migrate        # local
 bun run db:migrate:prod   # production
 
-# 4. Configure secrets (do NOT put these in wrangler.toml)
-wrangler secret put BOT_TOKEN       # Telegram Bot Token
-wrangler secret put BOT_OWNER_ID    # your numeric Telegram user id
-# WEBHOOK_BASE_URL must also be set to your domain, e.g. https://poke.keyp.dev
+# 5. Configure secrets (stored in Cloudflare, never in the repo)
+wrangler secret put BOT_TOKEN         # Telegram Bot Token
+wrangler secret put BOT_OWNER_ID      # your numeric Telegram user id
+wrangler secret put WEBHOOK_BASE_URL  # e.g. https://poke.keyp.dev
 
-# 5. Deploy
+# 6. Deploy
 bun run deploy
 ```
 
@@ -79,10 +91,10 @@ curl "https://api.telegram.org/bot<BOT_TOKEN>/setWebhook?url=https://poke.keyp.d
 ## Local Development
 
 ```bash
-bun run dev          # start wrangler dev
+bun run dev          # regenerates wrangler.toml, then starts wrangler dev
 ```
 
-Put environment variables in `.dev.vars` (already in `.gitignore`):
+Worker runtime variables go in `.dev.vars` (git-ignored):
 
 ```
 BOT_TOKEN=...
@@ -91,6 +103,15 @@ WEBHOOK_BASE_URL=http://localhost:8787
 ```
 
 ## Environment Variables
+
+Account ids used by wrangler / the `gen` script, kept in `.env` (git-ignored, see `.env.example`):
+
+| Variable | Description |
+|----------|-------------|
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account to deploy to; read natively by wrangler |
+| `D1_DATABASE_ID` | D1 database id, injected into `wrangler.toml` by the `gen` script |
+
+Worker runtime variables, set as Cloudflare secrets in production (and in `.dev.vars` locally):
 
 | Variable | Description |
 |----------|-------------|
